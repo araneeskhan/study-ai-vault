@@ -39,7 +39,7 @@ This guide will help you set up and run the complete authentication system inclu
 2. **Create a cluster** and get your connection string
 3. **Update the connection string** in `.env.local`:
    ```
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/study-ai-vault?retryWrites=true&w=majority
+   MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/study-ai-vault?retryWrites=true&w=majority
    ```
 
 ## 🏃‍♂️ Running the Application
