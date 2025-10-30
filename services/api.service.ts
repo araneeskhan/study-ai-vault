@@ -213,6 +213,35 @@ class ApiService {
     }
   }
 
+  async updateProfile(data: any): Promise<ApiResponse> {
+    try {
+      const token = await this.getToken();
+      
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found',
+        };
+      }
+
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to update profile',
+      };
+    }
+  }
+
   async checkServerHealth(): Promise<boolean> {
     try {
       const response = await this.fetchWithTimeout(`${API_BASE_URL}/health`, {
