@@ -4,9 +4,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ToastProvider } from '@/components/toast/ToastProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -25,6 +25,8 @@ export default function RootLayout() {
             <Stack.Screen name="signup" options={{ headerShown: false }} />
             <Stack.Screen name="signin" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="pdf-upload" options={{ presentation: 'modal', headerShown: false }} />
+            <Stack.Screen name="pdf-viewer" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ToastProvider>

@@ -188,6 +188,303 @@ class ApiService {
     }
   }
 
+  // PDF Methods
+  async uploadPdf(pdfData: FormData): Promise<ApiResponse> {
+    try {
+      const token = await this.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found',
+        };
+      }
+
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: pdfData,
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Upload PDF error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to upload PDF',
+      };
+    }
+  }
+
+  async getPdfs(params: any = {}): Promise<ApiResponse> {
+    try {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Get PDFs error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to fetch PDFs',
+      };
+    }
+  }
+
+  async getPdfById(id: string): Promise<ApiResponse> {
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Get PDF by ID error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to fetch PDF',
+      };
+    }
+  }
+
+  async getUserPdfs(userId: string, params: any = {}): Promise<ApiResponse> {
+    try {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/user/${userId}?${queryString}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Get user PDFs error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to fetch user PDFs',
+      };
+    }
+  }
+
+  async getMyPdfs(params: any = {}): Promise<ApiResponse> {
+    try {
+      const token = await this.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found',
+        };
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/my-pdfs?${queryString}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Get my PDFs error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to fetch my PDFs',
+      };
+    }
+  }
+
+  async incrementViewCount(id: string): Promise<ApiResponse> {
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/${id}/view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Increment view count error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to increment view count',
+      };
+    }
+  }
+
+  async downloadPdf(id: string): Promise<Response> {
+    try {
+      return await fetch(`${API_BASE_URL}/pdfs/${id}/download`);
+    } catch (error) {
+      console.error('Download PDF error:', error);
+      throw error;
+    }
+  }
+
+  async toggleLike(id: string): Promise<ApiResponse> {
+    try {
+      const token = await this.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found',
+        };
+      }
+
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/${id}/like`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Toggle like error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to toggle like',
+      };
+    }
+  }
+
+  async addRating(id: string, rating: number, review?: string): Promise<ApiResponse> {
+    try {
+      const token = await this.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found',
+        };
+      }
+
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/${id}/rating`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rating, review }),
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Add rating error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to add rating',
+      };
+    }
+  }
+
+  async addComment(id: string, content: string): Promise<ApiResponse> {
+    try {
+      const token = await this.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found',
+        };
+      }
+
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/${id}/comments`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Add comment error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to add comment',
+      };
+    }
+  }
+
+  async deletePdf(id: string): Promise<ApiResponse> {
+    try {
+      const token = await this.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found',
+        };
+      }
+
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Delete PDF error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to delete PDF',
+      };
+    }
+  }
+
+  async getGenres(): Promise<ApiResponse> {
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/genres/list`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Get genres error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to fetch genres',
+      };
+    }
+  }
+
+  async getPdfStatistics(): Promise<ApiResponse> {
+    try {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/pdfs/statistics/overview`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Get PDF statistics error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to fetch PDF statistics',
+      };
+    }
+  }
+
   async storeToken(token: string): Promise<void> {
     try {
       await AsyncStorage.setItem('token', token);

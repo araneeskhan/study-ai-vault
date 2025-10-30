@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { AuthService } from './services/auth.service';
+import pdfRoutes from './routes/pdf.routes';
 
 dotenv.config();
 
@@ -12,6 +14,9 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -156,6 +161,9 @@ app.get('/api/auth/profile', async (req, res) => {
   }
 });
 
+// PDF routes
+app.use('/api/pdfs', pdfRoutes);
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Server error:', err);
@@ -180,4 +188,8 @@ app.listen(PORT, () => {
   console.log(`   - POST http://localhost:${PORT}/api/auth/signin`);
   console.log(`   - GET  http://localhost:${PORT}/api/auth/profile`);
   console.log(`   - GET  http://localhost:${PORT}/api/health`);
+  console.log(`   - POST http://localhost:${PORT}/api/pdfs/upload`);
+  console.log(`   - GET  http://localhost:${PORT}/api/pdfs`);
+  console.log(`   - GET  http://localhost:${PORT}/api/pdfs/:id`);
+  console.log(`   - GET  http://localhost:${PORT}/api/pdfs/:id/download`);
 });

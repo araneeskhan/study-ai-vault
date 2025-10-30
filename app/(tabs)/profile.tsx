@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
-  Dimensions,
-  RefreshControl,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useThemeUtils } from '@/hooks/use-theme';
-import { ThemedText, ThemedView, ThemedButton, ThemedCard } from '@/components/ui';
+import { ThemedText, ThemedView } from '@/components/ui';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useThemeUtils } from '@/hooks/use-theme';
 import { apiService } from '@/services/api.service';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Dimensions,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -27,13 +27,13 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [userData, setUserData] = useState<any>(null);
 
+  const isDark = theme.isDark;
+
   useEffect(() => {
-    // Don't do anything while authentication is loading
     if (authLoading) {
       return;
     }
     
-    // Check if user is authenticated, if not redirect to signin
     if (!token) {
       router.replace('/signin');
       return;
@@ -44,11 +44,9 @@ export default function ProfileScreen() {
 
   const loadUserData = async () => {
     try {
-      // Use the apiService which already has correct URL configuration
       const result = await apiService.getProfile();
       
       if (result.success) {
-        // Try both result.user and result.data for compatibility
         const userData = result.user || result.data;
         if (userData) {
           setUserData(userData);
@@ -57,14 +55,12 @@ export default function ProfileScreen() {
         }
       } else {
         console.error('Failed to load profile:', result.message);
-        // If authentication failed, redirect to signin
         if (result.message === 'No authentication token found') {
           router.replace('/signin');
         }
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      // Handle network or other errors
       if (error.message.includes('authentication')) {
         router.replace('/signin');
       }
@@ -84,16 +80,12 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     console.log('Logout button pressed');
     
-    // Temporarily bypass Alert to test if the button works
     try {
       console.log('Logout initiated');
-      // First navigate away from profile
       router.replace('/signin');
       console.log('Navigation to signin initiated');
-      // Then perform logout to clear auth state
       await logout();
       console.log('Logout completed');
-      // Clear local data
       setUserData(null);
       console.log('Local data cleared');
     } catch (error) {
@@ -109,26 +101,112 @@ export default function ProfileScreen() {
     const isComplete = completion === 100;
     
     return (
-      <ThemedCard style={styles.completionCard}>
-        <ThemedView style={styles.completionHeader}>
-          <ThemedText variant="h3" style={styles.completionTitle}>
-            Profile Completion
-          </ThemedText>
-          <ThemedText style={[styles.completionPercentage, { color: isComplete ? theme.colors.success : theme.colors.primary }]}>
-            {completion}%
-          </ThemedText>
-        </ThemedView>
-        
-        <ThemedView style={styles.progressBarContainer}>
-          <ThemedView style={[styles.progressBar, { width: `${completion}%`, backgroundColor: isComplete ? theme.colors.success : theme.colors.primary }]} />
-        </ThemedView>
-        
-        {!isComplete && (
-          <ThemedText variant="caption" color="secondary" style={styles.completionText}>
-            Complete your profile to get personalized recommendations
-          </ThemedText>
-        )}
-      </ThemedCard>
+      <View style={[styles.glassCard, { 
+        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+        borderColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(10, 126, 164, 0.12)',
+      }]}>
+        <BlurView
+          intensity={isDark ? 20 : 40}
+          tint={isDark ? 'dark' : 'light'}
+          style={styles.blurContainer}
+        >
+          <LinearGradient
+            colors={isComplete 
+              ? isDark 
+                ? ['rgba(52, 211, 153, 0.15)', 'transparent']
+                : ['rgba(16, 185, 129, 0.08)', 'transparent']
+              : isDark
+                ? ['rgba(56, 189, 248, 0.15)', 'transparent']
+                : ['rgba(10, 126, 164, 0.08)', 'transparent']
+            }
+            style={styles.cardGradient}
+          >
+            <View style={styles.completionHeader}>
+              <View style={styles.completionTitleContainer}>
+                <View style={[styles.iconWrapper, { 
+                  backgroundColor: isComplete 
+                    ? (isDark ? 'rgba(52, 211, 153, 0.2)' : 'rgba(16, 185, 129, 0.12)')
+                    : (isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(10, 126, 164, 0.12)')
+                }]}>
+                  <IconSymbol 
+                    name={isComplete ? "checkmark.circle.fill" : "chart.bar.fill"} 
+                    size={22} 
+                    color={isComplete ? theme.colors.success : theme.colors.primary} 
+                  />
+                </View>
+                <ThemedText variant="h3" style={styles.completionTitle}>
+                  Profile Strength
+                </ThemedText>
+              </View>
+              <View style={[styles.percentageBadge, { 
+                backgroundColor: isComplete ? theme.colors.success : theme.colors.primary,
+              }]}>
+                <ThemedText style={styles.percentageText}>{completion}%</ThemedText>
+              </View>
+            </View>
+            
+            <View style={styles.progressBarWrapper}>
+              <View style={[styles.progressBarContainer, { 
+                backgroundColor: isDark ? 'rgba(100, 116, 139, 0.3)' : 'rgba(148, 163, 184, 0.2)' 
+              }]}>
+                <LinearGradient
+                  colors={isComplete 
+                    ? [theme.colors.success, theme.colors.success + 'dd']
+                    : [theme.colors.primary, theme.colors.accent]
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.progressBar, { width: `${completion}%` }]}
+                />
+              </View>
+              <View style={styles.progressLabels}>
+                <ThemedText variant="caption" color="secondary" style={styles.progressLabel}>Beginner</ThemedText>
+                <ThemedText variant="caption" color="secondary" style={styles.progressLabel}>Expert</ThemedText>
+              </View>
+            </View>
+            
+            {!isComplete && (
+              <View style={[styles.completionHint, { 
+                backgroundColor: isDark ? 'rgba(251, 191, 36, 0.1)' : 'rgba(245, 158, 11, 0.08)' 
+              }]}>
+                <IconSymbol name="lightbulb.fill" size={16} color={theme.colors.warning} />
+                <ThemedText variant="caption" color="secondary" style={styles.hintText}>
+                  Complete your profile to unlock personalized features
+                </ThemedText>
+              </View>
+            )}
+          </LinearGradient>
+        </BlurView>
+      </View>
+    );
+  };
+
+  const renderQuickActions = () => {
+    const actions = [
+      { icon: 'pencil', label: 'Edit', color: theme.colors.primary, onPress: handleEditProfile },
+      { icon: 'gear', label: 'Settings', color: theme.colors.accent, onPress: () => {} },
+      { icon: 'bell.fill', label: 'Alerts', color: theme.colors.warning, onPress: () => {} },
+      { icon: 'shield.fill', label: 'Privacy', color: theme.colors.success, onPress: () => {} },
+    ];
+
+    return (
+      <View style={styles.quickActionsContainer}>
+        {actions.map((action, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={[styles.actionButton, { 
+              backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(255, 255, 255, 0.9)',
+              borderColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(226, 232, 240, 0.8)',
+            }]}
+            onPress={action.onPress}
+          >
+            <View style={[styles.actionIconContainer, { backgroundColor: action.color + '15' }]}>
+              <IconSymbol name={action.icon} size={22} color={action.color} />
+            </View>
+            <ThemedText variant="caption" style={styles.actionLabel}>{action.label}</ThemedText>
+          </TouchableOpacity>
+        ))}
+      </View>
     );
   };
 
@@ -136,49 +214,76 @@ export default function ProfileScreen() {
     if (!userData) return null;
     
     return (
-      <ThemedCard style={styles.infoCard}>
-        <ThemedView style={styles.infoHeader}>
-          <ThemedText variant="h3" style={styles.infoTitle}>
-            About Me
-          </ThemedText>
-          <TouchableOpacity onPress={handleEditProfile} style={styles.editButton}>
-            <IconSymbol name="pencil" size={20} color={theme.colors.primary} />
-          </TouchableOpacity>
-        </ThemedView>
-        
-        {userData.bio ? (
-          <ThemedText style={styles.bioText}>{userData.bio}</ThemedText>
-        ) : (
-          <ThemedText color="secondary" style={styles.emptyBio}>
-            No bio added yet. Tap edit to add one.
-          </ThemedText>
-        )}
-        
-        <ThemedView style={styles.infoGrid}>
-          {userData.location && (
-            <ThemedView style={styles.infoItem}>
-              <IconSymbol name="location.fill" size={16} color={theme.colors.secondary} />
-              <ThemedText style={styles.infoText}>{userData.location}</ThemedText>
-            </ThemedView>
-          )}
-          
-          {userData.website && (
-            <ThemedView style={styles.infoItem}>
-              <IconSymbol name="link" size={16} color={theme.colors.secondary} />
-              <ThemedText style={styles.infoText}>{userData.website}</ThemedText>
-            </ThemedView>
-          )}
-          
-          {userData.birthDate && (
-            <ThemedView style={styles.infoItem}>
-              <IconSymbol name="calendar" size={16} color={theme.colors.secondary} />
-              <ThemedText style={styles.infoText}>
-                {new Date(userData.birthDate).toLocaleDateString()}
-              </ThemedText>
-            </ThemedView>
-          )}
-        </ThemedView>
-      </ThemedCard>
+      <View style={[styles.glassCard, { 
+        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+        borderColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(10, 126, 164, 0.12)',
+      }]}>
+        <BlurView
+          intensity={isDark ? 20 : 40}
+          tint={isDark ? 'dark' : 'light'}
+          style={styles.blurContainer}
+        >
+          <View style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleContainer}>
+                <View style={[styles.iconWrapper, { 
+                  backgroundColor: isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(10, 126, 164, 0.12)' 
+                }]}>
+                  <IconSymbol name="person.text.rectangle.fill" size={20} color={theme.colors.primary} />
+                </View>
+                <ThemedText variant="h3" style={styles.cardTitle}>About Me</ThemedText>
+              </View>
+            </View>
+            
+            {userData.bio ? (
+              <ThemedText style={styles.bioText}>{userData.bio}</ThemedText>
+            ) : (
+              <View style={styles.emptyState}>
+                <IconSymbol name="text.bubble" size={40} color={theme.colors.textTertiary} />
+                <ThemedText color="secondary" style={styles.emptyText}>
+                  Share something about yourself
+                </ThemedText>
+              </View>
+            )}
+            
+            {(userData.location || userData.website || userData.birthDate) && (
+              <View style={styles.infoGrid}>
+                {userData.location && (
+                  <View style={[styles.infoChip, { 
+                    backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : 'rgba(10, 126, 164, 0.08)',
+                    borderColor: isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(10, 126, 164, 0.15)',
+                  }]}>
+                    <IconSymbol name="location.fill" size={16} color={theme.colors.primary} />
+                    <ThemedText style={styles.infoChipText}>{userData.location}</ThemedText>
+                  </View>
+                )}
+                
+                {userData.website && (
+                  <View style={[styles.infoChip, { 
+                    backgroundColor: isDark ? 'rgba(34, 211, 238, 0.1)' : 'rgba(6, 182, 212, 0.08)',
+                    borderColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6, 182, 212, 0.15)',
+                  }]}>
+                    <IconSymbol name="link" size={16} color={theme.colors.accent} />
+                    <ThemedText style={styles.infoChipText}>{userData.website}</ThemedText>
+                  </View>
+                )}
+                
+                {userData.birthDate && (
+                  <View style={[styles.infoChip, { 
+                    backgroundColor: isDark ? 'rgba(52, 211, 153, 0.1)' : 'rgba(16, 185, 129, 0.08)',
+                    borderColor: isDark ? 'rgba(52, 211, 153, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                  }]}>
+                    <IconSymbol name="calendar" size={16} color={theme.colors.success} />
+                    <ThemedText style={styles.infoChipText}>
+                      {new Date(userData.birthDate).toLocaleDateString()}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </BlurView>
+      </View>
     );
   };
 
@@ -187,41 +292,45 @@ export default function ProfileScreen() {
     
     const { booksRead, pagesRead, readingStreak } = userData.readingStats;
     
+    const stats = [
+      { icon: 'book.fill', value: booksRead, label: 'Books', color: theme.colors.primary, gradient: isDark ? ['rgba(56, 189, 248, 0.2)', 'rgba(56, 189, 248, 0.05)'] : ['rgba(10, 126, 164, 0.12)', 'rgba(10, 126, 164, 0.02)'] },
+      { icon: 'doc.text.fill', value: pagesRead.toLocaleString(), label: 'Pages', color: theme.colors.accent, gradient: isDark ? ['rgba(34, 211, 238, 0.2)', 'rgba(34, 211, 238, 0.05)'] : ['rgba(6, 182, 212, 0.12)', 'rgba(6, 182, 212, 0.02)'] },
+      { icon: 'flame.fill', value: readingStreak, label: 'Streak', color: theme.colors.success, gradient: isDark ? ['rgba(52, 211, 153, 0.2)', 'rgba(52, 211, 153, 0.05)'] : ['rgba(16, 185, 129, 0.12)', 'rgba(16, 185, 129, 0.02)'] },
+    ];
+    
     return (
-      <ThemedCard style={styles.statsCard}>
-        <ThemedText variant="h3" style={styles.statsTitle}>
-          Reading Statistics
-        </ThemedText>
-        
-        <ThemedView style={styles.statsGrid}>
-          <ThemedView style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: theme.colors.primary }]}>
-              {booksRead}
-            </ThemedText>
-            <ThemedText variant="caption" color="secondary">
-              Books Read
-            </ThemedText>
-          </ThemedView>
-          
-          <ThemedView style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: theme.colors.accent }]}>
-              {pagesRead.toLocaleString()}
-            </ThemedText>
-            <ThemedText variant="caption" color="secondary">
-              Pages Read
-            </ThemedText>
-          </ThemedView>
-          
-          <ThemedView style={styles.statItem}>
-            <ThemedText style={[styles.statNumber, { color: theme.colors.success }]}>
-              {readingStreak}
-            </ThemedText>
-            <ThemedText variant="caption" color="secondary">
-              Day Streak
-            </ThemedText>
-          </ThemedView>
-        </ThemedView>
-      </ThemedCard>
+      <View style={styles.statsContainer}>
+        {stats.map((stat, index) => (
+          <View 
+            key={index}
+            style={[styles.statCard, { 
+              backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+              borderColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(226, 232, 240, 0.8)',
+            }]}
+          >
+            <BlurView
+              intensity={isDark ? 20 : 40}
+              tint={isDark ? 'dark' : 'light'}
+              style={styles.blurContainer}
+            >
+              <LinearGradient
+                colors={stat.gradient}
+                style={styles.statGradient}
+              >
+                <View style={[styles.statIconWrapper, { backgroundColor: stat.color + '20' }]}>
+                  <IconSymbol name={stat.icon} size={26} color={stat.color} />
+                </View>
+                <ThemedText style={[styles.statNumber, { color: stat.color }]}>
+                  {stat.value}
+                </ThemedText>
+                <ThemedText variant="caption" color="secondary" style={styles.statLabel}>
+                  {stat.label}
+                </ThemedText>
+              </LinearGradient>
+            </BlurView>
+          </View>
+        ))}
+      </View>
     );
   };
 
@@ -229,21 +338,45 @@ export default function ProfileScreen() {
     if (!userData?.favoriteGenres?.length) return null;
     
     return (
-      <ThemedCard style={styles.genresCard}>
-        <ThemedText variant="h3" style={styles.genresTitle}>
-          Favorite Genres
-        </ThemedText>
-        
-        <ThemedView style={styles.genresContainer}>
-          {userData.favoriteGenres.map((genre: string, index: number) => (
-            <ThemedView key={index} style={[styles.genreTag, { backgroundColor: theme.colors.surface }]}>
-              <ThemedText variant="caption" style={styles.genreText}>
-                {genre}
-              </ThemedText>
-            </ThemedView>
-          ))}
-        </ThemedView>
-      </ThemedCard>
+      <View style={[styles.glassCard, { 
+        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+        borderColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(10, 126, 164, 0.12)',
+      }]}>
+        <BlurView
+          intensity={isDark ? 20 : 40}
+          tint={isDark ? 'dark' : 'light'}
+          style={styles.blurContainer}
+        >
+          <View style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleContainer}>
+                <View style={[styles.iconWrapper, { 
+                  backgroundColor: isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(245, 158, 11, 0.12)' 
+                }]}>
+                  <IconSymbol name="star.fill" size={20} color={theme.colors.warning} />
+                </View>
+                <ThemedText variant="h3" style={styles.cardTitle}>Favorite Genres</ThemedText>
+              </View>
+            </View>
+            
+            <View style={styles.genresContainer}>
+              {userData.favoriteGenres.map((genre: string, index: number) => (
+                <View 
+                  key={index} 
+                  style={[styles.genreTag, { 
+                    backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(10, 126, 164, 0.08)',
+                    borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : 'rgba(10, 126, 164, 0.2)',
+                  }]}
+                >
+                  <ThemedText style={[styles.genreText, { color: theme.colors.primary }]}>
+                    {genre}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          </View>
+        </BlurView>
+      </View>
     );
   };
 
@@ -251,50 +384,102 @@ export default function ProfileScreen() {
     if (!userData) return null;
     
     return (
-      <ThemedCard style={styles.accountCard}>
-        <ThemedText variant="h3" style={styles.accountTitle}>
-          Account Information
-        </ThemedText>
-        
-        <ThemedView style={styles.accountItem}>
-          <ThemedText color="secondary">Email:</ThemedText>
-          <ThemedText style={styles.accountText}>{userData.email}</ThemedText>
-        </ThemedView>
-        
-        <ThemedView style={styles.accountItem}>
-          <ThemedText color="secondary">Member since:</ThemedText>
-          <ThemedText style={styles.accountText}>
-            {new Date(userData.createdAt).toLocaleDateString()}
-          </ThemedText>
-        </ThemedView>
-        
-        <ThemedView style={styles.accountItem}>
-          <ThemedText color="secondary">Email verified:</ThemedText>
-          <ThemedView style={styles.verificationStatus}>
-            <IconSymbol 
-              name={userData.isEmailVerified ? "checkmark.circle.fill" : "xmark.circle.fill"} 
-              size={16} 
-              color={userData.isEmailVerified ? theme.colors.success : theme.colors.error} 
-            />
-            <ThemedText style={styles.accountText}>
-              {userData.isEmailVerified ? 'Verified' : 'Not verified'}
-            </ThemedText>
-          </ThemedView>
-        </ThemedView>
-        
-        {userData.lastLogin && (
-          <ThemedView style={styles.accountItem}>
-            <ThemedText color="secondary">Last login:</ThemedText>
-            <ThemedText style={styles.accountText}>
-              {new Date(userData.lastLogin).toLocaleDateString()}
-            </ThemedText>
-          </ThemedView>
-        )}
-      </ThemedCard>
+      <View style={[styles.glassCard, { 
+        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+        borderColor: isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(10, 126, 164, 0.12)',
+      }]}>
+        <BlurView
+          intensity={isDark ? 20 : 40}
+          tint={isDark ? 'dark' : 'light'}
+          style={styles.blurContainer}
+        >
+          <View style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleContainer}>
+                <View style={[styles.iconWrapper, { 
+                  backgroundColor: isDark ? 'rgba(96, 165, 250, 0.2)' : 'rgba(59, 130, 246, 0.12)' 
+                }]}>
+                  <IconSymbol name="info.circle.fill" size={20} color={theme.colors.info} />
+                </View>
+                <ThemedText variant="h3" style={styles.cardTitle}>Account Details</ThemedText>
+              </View>
+            </View>
+            
+            <View style={styles.accountList}>
+              <View style={styles.accountRow}>
+                <View style={styles.accountLabel}>
+                  <IconSymbol name="envelope.fill" size={18} color={theme.colors.textSecondary} />
+                  <ThemedText color="secondary">Email</ThemedText>
+                </View>
+                <ThemedText style={styles.accountValue}>{userData.email}</ThemedText>
+              </View>
+              
+              <View style={[styles.accountRow, styles.accountRowBorder, { 
+                borderTopColor: isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(226, 232, 240, 0.6)' 
+              }]}>
+                <View style={styles.accountLabel}>
+                  <IconSymbol name="calendar.badge.clock" size={18} color={theme.colors.textSecondary} />
+                  <ThemedText color="secondary">Member Since</ThemedText>
+                </View>
+                <ThemedText style={styles.accountValue}>
+                  {new Date(userData.createdAt).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
+                </ThemedText>
+              </View>
+              
+              <View style={[styles.accountRow, styles.accountRowBorder, { 
+                borderTopColor: isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(226, 232, 240, 0.6)' 
+              }]}>
+                <View style={styles.accountLabel}>
+                  <IconSymbol name="checkmark.shield.fill" size={18} color={theme.colors.textSecondary} />
+                  <ThemedText color="secondary">Verification</ThemedText>
+                </View>
+                <View style={[styles.verificationBadge, { 
+                  backgroundColor: userData.isEmailVerified 
+                    ? (isDark ? 'rgba(52, 211, 153, 0.2)' : 'rgba(16, 185, 129, 0.12)')
+                    : (isDark ? 'rgba(248, 113, 113, 0.2)' : 'rgba(239, 68, 68, 0.12)')
+                }]}>
+                  <IconSymbol 
+                    name={userData.isEmailVerified ? "checkmark.circle.fill" : "xmark.circle.fill"} 
+                    size={14} 
+                    color={userData.isEmailVerified ? theme.colors.success : theme.colors.error} 
+                  />
+                  <ThemedText 
+                    style={[styles.verificationText, { 
+                      color: userData.isEmailVerified ? theme.colors.success : theme.colors.error 
+                    }]}
+                  >
+                    {userData.isEmailVerified ? 'Verified' : 'Pending'}
+                  </ThemedText>
+                </View>
+              </View>
+              
+              {userData.lastLogin && (
+                <View style={[styles.accountRow, styles.accountRowBorder, { 
+                  borderTopColor: isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(226, 232, 240, 0.6)' 
+                }]}>
+                  <View style={styles.accountLabel}>
+                    <IconSymbol name="clock.fill" size={18} color={theme.colors.textSecondary} />
+                    <ThemedText color="secondary">Last Active</ThemedText>
+                  </View>
+                  <ThemedText style={styles.accountValue}>
+                    {new Date(userData.lastLogin).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+          </View>
+        </BlurView>
+      </View>
     );
   };
 
-  // Show loading while authentication is being checked
   if (authLoading) {
     return (
       <ThemedView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -303,7 +488,6 @@ export default function ProfileScreen() {
     );
   }
 
-  // Show loading profile only after authentication is confirmed
   if (!userData) {
     return (
       <ThemedView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -318,63 +502,81 @@ export default function ProfileScreen() {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
+      showsVerticalScrollIndicator={false}
     >
-      {/* Header Section */}
-      <LinearGradient
-        colors={[theme.colors.primary + '20', theme.colors.accent + '10']}
-        style={styles.headerGradient}
-      >
-        <ThemedView style={styles.headerContent}>
-          <ThemedView style={styles.avatarContainer}>
-            {userData?.avatar ? (
-              <Image source={{ uri: userData.avatar }} style={styles.avatar} />
-            ) : (
-              <ThemedView style={[styles.avatarPlaceholder, { backgroundColor: theme.colors.surface }]}>
-                <ThemedText variant="h1" style={styles.avatarText}>
-                  {userData?.fullName?.charAt(0).toUpperCase()}
-                </ThemedText>
-              </ThemedView>
-            )}
-          </ThemedView>
-          
-          <ThemedText variant="h2" style={styles.userName}>
-            {userData?.fullName}
-          </ThemedText>
-          
-          <ThemedText variant="body" color="secondary" style={styles.userEmail}>
-            {userData?.email}
-          </ThemedText>
-        </ThemedView>
-      </LinearGradient>
+      {/* Premium Header with Glassmorphism */}
+      <View style={styles.headerWrapper}>
+        <LinearGradient
+          colors={isDark 
+            ? [theme.colors.primary, theme.colors.accent]
+            : [theme.colors.primary, theme.colors.accent]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.avatarWrapper}>
+              <View style={[styles.avatarBorder, {
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              }]}>
+                {userData?.avatar ? (
+                  <Image source={{ uri: userData.avatar }} style={styles.avatar} />
+                ) : (
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.15)']}
+                    style={styles.avatarPlaceholder}
+                  >
+                    <ThemedText variant="h1" style={styles.avatarText}>
+                      {userData?.fullName?.charAt(0).toUpperCase()}
+                    </ThemedText>
+                  </LinearGradient>
+                )}
+              </View>
+              <TouchableOpacity style={[styles.avatarEditButton, {
+                backgroundColor: isDark ? theme.colors.primary : '#fff',
+              }]}>
+                <IconSymbol name="camera.fill" size={16} color={isDark ? '#fff' : theme.colors.primary} />
+              </TouchableOpacity>
+            </View>
+            
+            <ThemedText variant="h2" style={styles.userName}>
+              {userData?.fullName}
+            </ThemedText>
+            
+            <View style={styles.userBadge}>
+              <IconSymbol name="checkmark.seal.fill" size={16} color="#fbbf24" />
+              <ThemedText style={styles.badgeText}>Premium Member</ThemedText>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
 
       {/* Content Section */}
-      <ThemedView style={styles.contentContainer}>
+      <View style={styles.contentContainer}>
+        {renderQuickActions()}
         {renderProfileCompletion()}
-        {renderUserInfo()}
         {renderReadingStats()}
+        {renderUserInfo()}
         {renderFavoriteGenres()}
         {renderAccountInfo()}
         
-        {/* Action Buttons */}
-        <ThemedView style={styles.actionContainer}>
-          <ThemedButton
-            variant="secondary"
-            onPress={handleEditProfile}
-            style={styles.editButton}
-          >
-            Edit Profile
-          </ThemedButton>
-          
-          <ThemedButton
-            variant="outline"
-            onPress={handleLogout}
-            style={[styles.logoutButton, { borderColor: theme.colors.error }]}
-            textStyle={{ color: theme.colors.error }}
-          >
-            Logout
-          </ThemedButton>
-        </ThemedView>
-      </ThemedView>
+        {/* Logout Button with Glass Effect */}
+        <TouchableOpacity 
+          style={[styles.logoutButton, { 
+            backgroundColor: isDark ? 'rgba(248, 113, 113, 0.15)' : 'rgba(239, 68, 68, 0.08)',
+            borderColor: isDark ? 'rgba(248, 113, 113, 0.3)' : 'rgba(239, 68, 68, 0.2)',
+          }]}
+          onPress={handleLogout}
+        >
+          <IconSymbol name="arrow.right.square.fill" size={20} color={theme.colors.error} />
+          <ThemedText style={[styles.logoutText, { color: theme.colors.error }]}>
+            Sign Out
+          </ThemedText>
+        </TouchableOpacity>
+
+        <View style={styles.bottomSpacing} />
+      </View>
     </ScrollView>
   );
 }
@@ -383,196 +585,330 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerWrapper: {
+    overflow: 'hidden',
+  },
   headerGradient: {
     paddingTop: 60,
-    paddingBottom: 40,
-    alignItems: 'center',
+    paddingBottom: 50,
   },
   headerContent: {
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  avatarContainer: {
-    marginBottom: 16,
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  avatarBorder: {
+    padding: 5,
+    borderRadius: 65,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: '#fff',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
   },
   avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 44,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  avatarEditButton: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#fff',
-  },
-  avatarText: {
-    fontSize: 40,
-    fontWeight: 'bold',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   userName: {
-    marginBottom: 4,
+    marginBottom: 10,
     textAlign: 'center',
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 28,
   },
-  userEmail: {
-    textAlign: 'center',
-    opacity: 0.8,
+  userBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingTop: 24,
   },
-  completionCard: {
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 14,
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 18,
+    borderRadius: 24,
+    borderWidth: 1.5,
+  },
+  actionIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  actionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  glassCard: {
     marginBottom: 20,
-    padding: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+  },
+  blurContainer: {
+    overflow: 'hidden',
+    borderRadius: 28,
+  },
+  cardGradient: {
+    padding: 24,
+  },
+  cardContent: {
+    padding: 24,
   },
   completionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
+  },
+  completionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   completionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  completionPercentage: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
+  },
+  percentageBadge: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 24,
+  },
+  percentageText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  progressBarWrapper: {
+    gap: 10,
   },
   progressBarContainer: {
-    height: 8,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 4,
+    height: 12,
+    borderRadius: 24,
     overflow: 'hidden',
-    marginBottom: 8,
   },
   progressBar: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 24,
   },
-  completionText: {
-    textAlign: 'center',
-  },
-  infoCard: {
-    marginBottom: 20,
-    padding: 16,
-  },
-  infoHeader: {
+  progressLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: 4,
   },
-  infoTitle: {
-    fontSize: 16,
+  progressLabel: {
+    fontSize: 11,
     fontWeight: '600',
   },
-  editButton: {
-    padding: 4,
+  completionHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    marginTop: 8,
   },
-  bioText: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
+  hintText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
   },
-  emptyBio: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginBottom: 16,
+  cardHeader: {
+    marginBottom: 20,
   },
-  infoGrid: {
+  cardTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
-  infoItem: {
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  bioText: {
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 0,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    gap: 14,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 20,
+  },
+  infoChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1.5,
   },
-  infoText: {
+  infoChipText: {
     fontSize: 14,
-  },
-  statsCard: {
-    marginBottom: 20,
-    padding: 16,
-  },
-  statsTitle: {
-    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 16,
   },
-  statsGrid: {
+  statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: 14,
+    marginBottom: 20,
   },
-  statItem: {
+  statCard: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+  },
+  statGradient: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 10,
+  },
+  statIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: '900',
   },
-  genresCard: {
-    marginBottom: 20,
-    padding: 16,
-  },
-  genresTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
+  statLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '700',
   },
   genresContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
   },
   genreTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1.5,
   },
   genreText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  accountCard: {
-    marginBottom: 20,
-    padding: 16,
+  accountList: {
+    gap: 0,
   },
-  accountTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  accountItem: {
+  accountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 16,
   },
-  accountText: {
-    fontSize: 14,
+  accountRowBorder: {
+    borderTopWidth: 1,
   },
-  verificationStatus: {
+  accountLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
-  actionContainer: {
     gap: 12,
-    marginTop: 20,
   },
-  editButton: {
-    marginBottom: 8,
+  accountValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  verificationText: {
+    fontSize: 13,
+    fontWeight: '800',
   },
   logoutButton: {
-    borderColor: '#DC2626',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 18,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    marginTop: 12,
+  },
+  logoutText: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  bottomSpacing: {
+    height: 120,
   },
 });
