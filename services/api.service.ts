@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Determine the correct API URL based on platform
 // Allows override via EXPO_PUBLIC_API_URL (e.g., http://<your-ip>:3001 or http://localhost:3001)
@@ -189,10 +190,7 @@ class ApiService {
 
   async storeToken(token: string): Promise<void> {
     try {
-      // Use AsyncStorage for React Native
-      // For now, we'll use a simple in-memory storage
-      // In a real app, you'd use AsyncStorage or secure storage
-      global.authToken = token;
+      await AsyncStorage.setItem('token', token);
     } catch (error) {
       console.error('Store token error:', error);
     }
@@ -200,10 +198,7 @@ class ApiService {
 
   async getToken(): Promise<string | null> {
     try {
-      // Use AsyncStorage for React Native
-      // For now, we'll use a simple in-memory storage
-      // In a real app, you'd use AsyncStorage or secure storage
-      return global.authToken || null;
+      return await AsyncStorage.getItem('token');
     } catch (error) {
       console.error('Get token error:', error);
       return null;
@@ -212,10 +207,7 @@ class ApiService {
 
   async removeToken(): Promise<void> {
     try {
-      // Use AsyncStorage for React Native
-      // For now, we'll use a simple in-memory storage
-      // In a real app, you'd use AsyncStorage or secure storage
-      global.authToken = null;
+      await AsyncStorage.removeItem('token');
     } catch (error) {
       console.error('Remove token error:', error);
     }

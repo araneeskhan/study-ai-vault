@@ -3,11 +3,11 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 
 import { ThemedText, ThemedView } from '@/components/ui';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useTheme } from '@/hooks/use-theme';
+import { useThemeUtils } from '@/hooks/use-theme';
 
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const theme = useTheme();
+  const { theme } = useThemeUtils();
 
   return (
     <ThemedView>

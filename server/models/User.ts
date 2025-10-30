@@ -79,6 +79,83 @@ const UserSchema = new mongoose.Schema({
       },
     },
   },
+  // Profile fields
+  bio: {
+    type: String,
+    default: '',
+    maxlength: [500, 'Bio cannot exceed 500 characters'],
+  },
+  location: {
+    type: String,
+    default: '',
+    maxlength: [100, 'Location cannot exceed 100 characters'],
+  },
+  website: {
+    type: String,
+    default: '',
+    match: [/^https?:\/\/.+/, 'Please enter a valid website URL'],
+  },
+  birthDate: {
+    type: Date,
+    default: null,
+  },
+  readingStats: {
+    booksRead: {
+      type: Number,
+      default: 0,
+      min: [0, 'Books read cannot be negative'],
+    },
+    pagesRead: {
+      type: Number,
+      default: 0,
+      min: [0, 'Pages read cannot be negative'],
+    },
+    readingStreak: {
+      type: Number,
+      default: 0,
+      min: [0, 'Reading streak cannot be negative'],
+    },
+  },
+  favoriteGenres: [{
+    type: String,
+    trim: true,
+  }],
+  favoriteBooks: [{
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    author: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    isbn: {
+      type: String,
+      trim: true,
+    },
+  }],
+  privacy: {
+    profileVisible: {
+      type: Boolean,
+      default: true,
+    },
+    showReadingStats: {
+      type: Boolean,
+      default: true,
+    },
+    showFavoriteBooks: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  profileCompletion: {
+    type: Number,
+    default: 0,
+    min: [0, 'Profile completion cannot be negative'],
+    max: [100, 'Profile completion cannot exceed 100'],
+  },
 }, {
   timestamps: true,
 });
@@ -90,8 +167,8 @@ UserSchema.index({ email: 1, isActive: 1 });
 UserSchema.index({ fullName: 'text' });
 
 // Virtual for account lock status
-UserSchema.virtual('isLocked').get(function(this: any) {
-  return !!(this.lockUntil && this.lockUntil > Date.now());
+UserSchema.virtual('isLocked').get(function() {
+  return !!(this.lockUntil && this.lockUntil.getTime() > Date.now());
 });
 
 // Method to hide sensitive data

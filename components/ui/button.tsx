@@ -1,135 +1,77 @@
-import { Pressable, PressableProps, StyleSheet, ActivityIndicator } from 'react-native';
-import { ThemedText } from './text';
-import { useTheme } from '@/hooks/use-theme';
+import React from 'react';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, TextStyle, ViewStyle } from 'react-native';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
-interface ThemedButtonProps extends PressableProps {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+interface ThemedButtonProps extends TouchableOpacityProps {
+  variant?: 'primary' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
-  loading?: boolean;
-  disabled?: boolean;
-  children: string;
+  children: React.ReactNode;
+  style?: ViewStyle;
+  textStyle?: TextStyle;
 }
 
-export function ThemedButton({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  disabled = false,
-  children,
-  style,
-  ...props
+export function ThemedButton({ 
+  variant = 'primary', 
+  size = 'md', 
+  children, 
+  style, 
+  textStyle,
+  disabled,
+  ...props 
 }: ThemedButtonProps) {
-  const theme = useTheme();
-  
-  const getBackgroundColor = () => {
-    switch (variant) {
-      case 'primary':
-        return theme.colors.primary;
-      case 'secondary':
-        return theme.colors.secondary;
-      case 'outline':
-      case 'ghost':
-        return 'transparent';
-      default:
-        return theme.colors.primary;
-    }
+  const backgroundColor = useThemeColor({}, variant === 'primary' ? 'primary' : 'surface');
+  const textColor = useThemeColor({}, variant === 'primary' ? 'background' : 'text');
+  const borderColor = useThemeColor({}, 'border');
+
+  const sizeStyles = {
+    sm: { paddingVertical: 8, paddingHorizontal: 16 },
+    md: { paddingVertical: 12, paddingHorizontal: 24 },
+    lg: { paddingVertical: 16, paddingHorizontal: 32 },
   };
-  
-  const getTextColor = () => {
-    switch (variant) {
-      case 'primary':
-      case 'secondary':
-        return theme.colors.surface;
-      case 'outline':
-      case 'ghost':
-        return theme.colors.primary;
-      default:
-        return theme.colors.surface;
-    }
+
+  const variantStyles = {
+    primary: { backgroundColor },
+    secondary: { backgroundColor },
+    outline: { backgroundColor: 'transparent', borderWidth: 1, borderColor },
   };
-  
-  const getBorderColor = () => {
-    switch (variant) {
-      case 'outline':
-        return theme.colors.primary;
-      case 'ghost':
-        return 'transparent';
-      default:
-        return 'transparent';
-    }
-  };
-  
-  const getPadding = () => {
-    switch (size) {
-      case 'sm':
-        return theme.spacing.sm;
-      case 'md':
-        return theme.spacing.md;
-      case 'lg':
-        return theme.spacing.lg;
-      default:
-        return theme.spacing.md;
-    }
-  };
-  
-  const getBorderRadius = () => {
-    switch (size) {
-      case 'sm':
-        return theme.borderRadius.sm;
-      case 'md':
-        return theme.borderRadius.md;
-      case 'lg':
-        return theme.borderRadius.lg;
-      default:
-        return theme.borderRadius.md;
-    }
-  };
-  
-  const getFontSize = () => {
-    switch (size) {
-      case 'sm':
-        return theme.typography.fontSize.sm;
-      case 'md':
-        return theme.typography.fontSize.base;
-      case 'lg':
-        return theme.typography.fontSize.lg;
-      default:
-        return theme.typography.fontSize.base;
-    }
-  };
-  
+
+  const buttonStyles = [
+    styles.button,
+    variantStyles[variant],
+    sizeStyles[size],
+    disabled && styles.disabled,
+    style,
+  ];
+
   return (
-    <Pressable
-      style={[
-        {
-          backgroundColor: getBackgroundColor(),
-          borderColor: getBorderColor(),
-          borderWidth: variant === 'outline' ? 2 : 0,
-          paddingHorizontal: getPadding(),
-          paddingVertical: getPadding() * 0.5,
-          borderRadius: getBorderRadius(),
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'row',
-          gap: theme.spacing.sm,
-          opacity: disabled || loading ? 0.6 : 1,
-        },
-        style,
-      ]}
-      disabled={disabled || loading}
+    <TouchableOpacity 
+      style={buttonStyles} 
+      disabled={disabled}
+      activeOpacity={0.8}
       {...props}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={getTextColor()} />
-      ) : (
-        <ThemedText
-          variant="button"
-          color={variant === 'primary' || variant === 'secondary' ? 'primary' : 'accent'}
-          style={{ fontSize: getFontSize() }}
-        >
+      {typeof children === 'string' ? (
+        <Text style={[styles.text, { color: textColor }, textStyle]}>
           {children}
-        </ThemedText>
+        </Text>
+      ) : (
+        children
       )}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+});

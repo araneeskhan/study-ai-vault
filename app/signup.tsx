@@ -1,13 +1,15 @@
-import { ThemedButton, ThemedText, ThemedView } from '@/components/ui';
+import { useToast } from '@/components/toast/ToastProvider';
+import { ThemedText, ThemedView } from '@/components/ui';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useTheme } from '@/hooks/use-theme';
-import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeUtils } from '@/hooks/use-theme';
 import { apiService } from '@/services/api.service';
-import { useState, useEffect, useRef } from 'react';
-import { useToast } from '@/components/toast';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
+  Animated,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -15,8 +17,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Animated,
-  Dimensions,
 } from 'react-native';
 
 interface FormData {
@@ -34,11 +34,173 @@ interface FormErrors {
 }
 
 const { width, height } = Dimensions.get('window');
+const isSmallDevice = width < 375;
+const isMediumDevice = width >= 375 && width < 768;
 
 export default function SignupScreen() {
-  const theme = useTheme();
+  const { theme } = useThemeUtils();
   const router = useRouter();
   const { showToast } = useToast();
+  const { login } = useAuth();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    gradientBackground: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    decorativeContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: 'hidden',
+      pointerEvents: 'none',
+    },
+    sparkle: {
+      position: 'absolute',
+    },
+    sparkleText: {
+      fontSize: 14,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      paddingVertical: 40,
+    },
+    content: {
+      width: '100%',
+      maxWidth: 500,
+      alignSelf: 'center',
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: 32,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    logoGradient: {
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    logoText: {
+      color: '#FFFFFF',
+      fontWeight: '900',
+      letterSpacing: 1,
+    },
+    title: {
+      fontWeight: '800',
+      marginBottom: 8,
+      letterSpacing: -0.5,
+    },
+    subtitle: {
+      fontSize: 16,
+    },
+    formCard: {
+      borderRadius: 24,
+      borderColor: theme.colors.border,
+      borderWidth: 1,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 16,
+      elevation: 4,
+    },
+    inputGroup: {
+      marginBottom: 20,
+      backgroundColor: theme.colors.surface,
+    },
+    label: {
+      fontWeight: '600',
+      marginBottom: 8,
+      fontSize: 13,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      height: 52,
+      borderWidth: 1,
+      gap: 12,
+    },
+    textInput: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    errorText: {
+      marginTop: 6,
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    strengthContainer: {
+      marginTop: 8,
+    },
+    strengthBarBg: {
+      height: 3,
+      borderRadius: 2,
+      overflow: 'hidden',
+    },
+    strengthBar: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    buttonGradient: {
+      borderRadius: 12,
+      marginTop: 8,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    signupButton: {
+      height: 56,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    buttonText: {
+      color: '#FFFFFF',
+      fontSize: 17,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+    },
+    terms: {
+      fontSize: 12,
+      lineHeight: 18,
+      opacity: 0.7,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 24,
+    },
+    signinLink: {
+      fontWeight: '700',
+      fontSize: 16,
+    },
+  });
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
@@ -53,7 +215,7 @@ export default function SignupScreen() {
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -62,52 +224,56 @@ export default function SignupScreen() {
         duration: 800,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
+        friction: 8,
         tension: 40,
         useNativeDriver: true,
       }),
     ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sparkleAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkleAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Full name validation
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+      newErrors.fullName = 'Required';
     } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters';
+      newErrors.fullName = 'Too short';
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Required';
     } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Invalid email';
     }
 
-    // Password validation
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = 'Required';
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and number';
+      newErrors.password = 'Min 8 characters';
     }
 
-    // Confirm password validation
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = 'Required';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Does not match';
     }
 
     setErrors(newErrors);
@@ -127,11 +293,20 @@ export default function SignupScreen() {
         password: formData.password,
       });
 
+      console.log('Signup result:', result); // Debug log
+
       if (result.success) {
+        // Store authentication data in AuthContext
+        if (result.token && result.user) {
+          await login(result.token, result.user);
+        } else {
+          console.error('Missing user or token in signup response:', result);
+        }
+        
         showToast({
           type: 'success',
-          title: 'Account Created!',
-          message: 'Welcome to Study AI Vault!',
+          title: 'Success',
+          message: 'Account created successfully',
           duration: 3000,
         });
         setTimeout(() => {
@@ -140,16 +315,16 @@ export default function SignupScreen() {
       } else {
         showToast({
           type: 'error',
-          title: 'Signup Failed',
-          message: result.message || 'Failed to create account',
+          title: 'Error',
+          message: result.message,
           duration: 4000,
         });
       }
     } catch (error) {
       showToast({
         type: 'error',
-        title: 'Connection Error',
-        message: 'Unable to connect to server. Please try again.',
+        title: 'Error',
+        message: 'Unable to connect to server',
         duration: 4000,
       });
     } finally {
@@ -159,7 +334,6 @@ export default function SignupScreen() {
 
   const updateFormData = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
@@ -173,7 +347,6 @@ export default function SignupScreen() {
     if (/[A-Z]/.test(password)) strength++;
     if (/\d/.test(password)) strength++;
     if (/[^\w\s]/.test(password)) strength++;
-    
     return strength;
   };
 
@@ -185,302 +358,299 @@ export default function SignupScreen() {
     return theme.colors.success;
   };
 
+  const responsiveStyles = {
+    containerPadding: isSmallDevice ? 16 : isMediumDevice ? 20 : 24,
+    logoSize: isSmallDevice ? 64 : isMediumDevice ? 72 : 80,
+    titleSize: isSmallDevice ? 28 : isMediumDevice ? 32 : 36,
+    cardPadding: isSmallDevice ? 20 : isMediumDevice ? 24 : 28,
+  };
+
+  const sparkleOpacity = sparkleAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.2, 0.6, 0.2],
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Animated Background */}
-      <ThemedView style={styles.gradientBackground}>
-        <LinearGradient
-          colors={[
-            theme.colors.primary + '10',
-            theme.colors.accent + '05',
-            theme.colors.background,
-          ]}
-          style={styles.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
+      {/* Gradient Background */}
+      <LinearGradient
+        colors={[
+          theme.colors.primary + '08',
+          theme.colors.background,
+          theme.colors.background,
+        ]}
+        style={styles.gradientBackground}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+
+      {/* Subtle Sparkles Only */}
+      <ThemedView style={styles.decorativeContainer}>
+        {[...Array(4)].map((_, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              styles.sparkle,
+              {
+                top: `${20 + i * 25}%`,
+                right: `${10 + i * 20}%`,
+                opacity: sparkleOpacity,
+              }
+            ]}
+          >
+            <ThemedText style={styles.sparkleText}>✨</ThemedText>
+          </Animated.View>
+        ))}
       </ThemedView>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
+        style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { padding: responsiveStyles.containerPadding }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bounces={true}
         >
-          {/* Animated Header */}
           <Animated.View 
             style={[
-              styles.header,
+              styles.content,
               {
                 opacity: fadeAnim,
-                transform: [
-                  { translateY: slideAnim },
-                  { scale: scaleAnim }
-                ]
+                transform: [{ translateY: slideAnim }]
               }
             ]}
           >
-            <ThemedView style={styles.logoContainer}>
-              <ThemedView style={styles.logoWrapper}>
+            {/* Header */}
+            <ThemedView style={styles.header}>
+              <ThemedView style={styles.logoContainer}>
                 <LinearGradient
                   colors={[theme.colors.primary, theme.colors.accent]}
-                  style={styles.logoBackground}
+                  style={[styles.logoGradient, { width: responsiveStyles.logoSize, height: responsiveStyles.logoSize }]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
-                  <ThemedText variant="h3" style={styles.logoText}>
+                  <ThemedText style={[styles.logoText, { fontSize: responsiveStyles.logoSize * 0.35 }]}>
                     AI
                   </ThemedText>
                 </LinearGradient>
-                <ThemedView style={[
-                  styles.logoGlow,
-                  { backgroundColor: theme.colors.primary + '30' }
-                ]} />
               </ThemedView>
+              <ThemedText variant="h1" center style={[styles.title, { fontSize: responsiveStyles.titleSize }]}>
+                Create Account
+              </ThemedText>
+              <ThemedText variant="body" center color="secondary" style={styles.subtitle}>
+                Join the learning community
+              </ThemedText>
             </ThemedView>
-            <ThemedText variant="h1" style={styles.title}>
-              Create Account
-            </ThemedText>
-            <ThemedText variant="body" center color="secondary" style={styles.subtitle}>
-              Start your learning journey with Study Vault
-            </ThemedText>
-          </Animated.View>
 
-          {/* Professional Form Card */}
-          <Animated.View 
-            style={[
+            {/* Form Card */}
+            <ThemedView style={[
               styles.formCard, 
-              { backgroundColor: theme.colors.surface },
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: Animated.add(slideAnim, 20) }]
+              { 
+                backgroundColor: theme.colors.surface,
+                padding: responsiveStyles.cardPadding,
               }
-            ]}
-          >
-            {/* Full Name Input */}
-            <ThemedView style={styles.inputGroup}>
-              <ThemedText variant="caption" color="secondary" style={styles.label}>
-                Full Name
-              </ThemedText>
-              <ThemedView
-                style={[
-                  styles.inputContainer,
-                  errors.fullName && styles.inputError,
-                  { backgroundColor: theme.colors.background },
-                ]}
-              >
-                <IconSymbol
-                  name="person.fill"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Enter your full name"
-                  placeholderTextColor={theme.colors.textTertiary}
-                  value={formData.fullName}
-                  onChangeText={(text: string) => updateFormData('fullName', text)}
-                  autoCapitalize="words"
-                  autoComplete="name"
-                  returnKeyType="next"
-                />
-              </ThemedView>
-              {errors.fullName && (
-                <ThemedText variant="caption" color="error" style={styles.errorText}>
-                  {errors.fullName}
+            ]}>
+              {/* Full Name */}
+              <ThemedView style={styles.inputGroup}>
+                <ThemedText variant="caption" style={[styles.label, { backgroundColor: theme.colors.surface }]}>
+                  Full Name
                 </ThemedText>
-              )}
-            </ThemedView>
-
-            {/* Email Input */}
-            <ThemedView style={styles.inputGroup}>
-              <ThemedText variant="caption" color="secondary" style={styles.label}>
-                Email Address
-              </ThemedText>
-              <ThemedView
-                style={[
-                  styles.inputContainer,
-                  errors.email && styles.inputError,
-                  { backgroundColor: theme.colors.background },
-                ]}
-              >
-                <IconSymbol
-                  name="envelope.fill"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Enter your email address"
-                  placeholderTextColor={theme.colors.textTertiary}
-                  value={formData.email}
-                  onChangeText={(text: string) => updateFormData('email', text)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  returnKeyType="next"
-                />
-              </ThemedView>
-              {errors.email && (
-                <ThemedText variant="caption" color="error" style={styles.errorText}>
-                  {errors.email}
-                </ThemedText>
-              )}
-            </ThemedView>
-
-            {/* Password Input */}
-            <ThemedView style={styles.inputGroup}>
-              <ThemedText variant="caption" color="secondary" style={styles.label}>
-                Password
-              </ThemedText>
-              <ThemedView
-                style={[
-                  styles.inputContainer,
-                  errors.password && styles.inputError,
-                  { backgroundColor: theme.colors.background },
-                ]}
-              >
-                <IconSymbol
-                  name="lock.fill"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text, flex: 1 }]}
-                  placeholder="Create a strong password"
-                  placeholderTextColor={theme.colors.textTertiary}
-                  value={formData.password}
-                  onChangeText={(text: string) => updateFormData('password', text)}
-                  secureTextEntry={securePassword}
-                  autoComplete="new-password"
-                  returnKeyType="next"
-                />
-                <TouchableOpacity
-                  onPress={() => setSecurePassword(!securePassword)}
-                  style={styles.eyeButton}
-                >
+                <ThemedView style={[
+                  styles.inputWrapper,
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: errors.fullName ? theme.colors.error : theme.colors.border,
+                  }
+                ]}>
                   <IconSymbol
-                    name={securePassword ? 'eye.slash.fill' : 'eye.fill'}
+                    name="person.fill"
                     size={20}
                     color={theme.colors.textSecondary}
                   />
-                </TouchableOpacity>
-              </ThemedView>
-              {formData.password.length > 0 && (
-                <ThemedView style={styles.passwordStrengthContainer}>
-                  <ThemedView
-                    style={[
-                      styles.passwordStrengthBar,
-                      {
-                        backgroundColor: getPasswordStrengthColor(),
-                        width: `${(getPasswordStrength() / 5) * 100}%`,
-                      },
-                    ]}
+                  <TextInput
+                    style={[styles.textInput, { color: theme.colors.text }]}
+                    placeholder="John Doe"
+                    placeholderTextColor={theme.colors.textTertiary + '80'}
+                    value={formData.fullName}
+                    onChangeText={(text) => updateFormData('fullName', text)}
+                    autoCapitalize="words"
+                    returnKeyType="next"
                   />
-                  <ThemedText variant="caption" color="secondary">
-                    Password strength: {getPasswordStrength() <= 1 ? 'Weak' : getPasswordStrength() <= 2 ? 'Fair' : getPasswordStrength() <= 3 ? 'Good' : 'Strong'}
-                  </ThemedText>
                 </ThemedView>
-              )}
-              {errors.password && (
-                <ThemedText variant="caption" color="error" style={styles.errorText}>
-                  {errors.password}
-                </ThemedText>
-              )}
-            </ThemedView>
+                {errors.fullName && (
+                  <ThemedText variant="caption" style={[styles.errorText, { color: theme.colors.error }]}>
+                    {errors.fullName}
+                  </ThemedText>
+                )}
+              </ThemedView>
 
-            {/* Confirm Password Input */}
-            <ThemedView style={styles.inputGroup}>
-              <ThemedText variant="caption" color="secondary" style={styles.label}>
-                Confirm Password
-              </ThemedText>
-              <ThemedView
-                style={[
-                  styles.inputContainer,
-                  errors.confirmPassword && styles.inputError,
-                  { backgroundColor: theme.colors.background },
-                ]}
-              >
-                <IconSymbol
-                  name="lock.fill"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text, flex: 1 }]}
-                  placeholder="Confirm your password"
-                  placeholderTextColor={theme.colors.textTertiary}
-                  value={formData.confirmPassword}
-                  onChangeText={(text: string) => updateFormData('confirmPassword', text)}
-                  secureTextEntry={secureConfirmPassword}
-                  autoComplete="new-password"
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  onPress={() => setSecureConfirmPassword(!secureConfirmPassword)}
-                  style={styles.eyeButton}
-                >
+              {/* Email */}
+              <ThemedView style={styles.inputGroup}>
+                <ThemedText variant="caption" style={styles.label}>
+                  Email
+                </ThemedText>
+                <ThemedView style={[
+                  styles.inputWrapper,
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: errors.email ? theme.colors.error : theme.colors.border,
+                  }
+                ]}>
                   <IconSymbol
-                    name={secureConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
+                    name="envelope.fill"
                     size={20}
                     color={theme.colors.textSecondary}
                   />
-                </TouchableOpacity>
+                  <TextInput
+                    style={[styles.textInput, { color: theme.colors.text }]}
+                    placeholder="you@example.com"
+                    placeholderTextColor={theme.colors.textTertiary + '80'}
+                    value={formData.email}
+                    onChangeText={(text) => updateFormData('email', text)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    returnKeyType="next"
+                  />
+                </ThemedView>
+                {errors.email && (
+                  <ThemedText variant="caption" style={[styles.errorText, { color: theme.colors.error }]}>
+                    {errors.email}
+                  </ThemedText>
+                )}
               </ThemedView>
-              {errors.confirmPassword && (
-                <ThemedText variant="caption" color="error" style={styles.errorText}>
-                  {errors.confirmPassword}
-                </ThemedText>
-              )}
-            </ThemedView>
 
-            {/* Professional Sign Up Button */}
-            <ThemedView style={styles.buttonGradientWrapper}>
+              {/* Password */}
+              <ThemedView style={styles.inputGroup}>
+                <ThemedText variant="caption" style={styles.label}>
+                  Password
+                </ThemedText>
+                <ThemedView style={[
+                  styles.inputWrapper,
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: errors.password ? theme.colors.error : theme.colors.border,
+                  }
+                ]}>
+                  <IconSymbol
+                    name="lock.fill"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                  <TextInput
+                    style={[styles.textInput, { color: theme.colors.text, flex: 1 }]}
+                    placeholder="••••••••"
+                    placeholderTextColor={theme.colors.textTertiary + '80'}
+                    value={formData.password}
+                    onChangeText={(text) => updateFormData('password', text)}
+                    secureTextEntry={securePassword}
+                    returnKeyType="next"
+                  />
+                  <TouchableOpacity onPress={() => setSecurePassword(!securePassword)}>
+                    <IconSymbol
+                      name={securePassword ? 'eye.slash.fill' : 'eye.fill'}
+                      size={20}
+                      color={theme.colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </ThemedView>
+                {formData.password.length > 0 && (
+                  <ThemedView style={styles.strengthContainer}>
+                    <ThemedView style={[styles.strengthBarBg, { backgroundColor: theme.colors.border }]}>
+                      <ThemedView
+                        style={[
+                          styles.strengthBar,
+                          {
+                            backgroundColor: getPasswordStrengthColor(),
+                            width: `${(getPasswordStrength() / 5) * 100}%`,
+                          },
+                        ]}
+                      />
+                    </ThemedView>
+                  </ThemedView>
+                )}
+                {errors.password && (
+                  <ThemedText variant="caption" style={[styles.errorText, { color: theme.colors.error }]}>
+                    {errors.password}
+                  </ThemedText>
+                )}
+              </ThemedView>
+
+              {/* Confirm Password */}
+              <ThemedView style={styles.inputGroup}>
+                <ThemedText variant="caption" style={styles.label}>
+                  Confirm Password
+                </ThemedText>
+                <ThemedView style={[
+                  styles.inputWrapper,
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: errors.confirmPassword ? theme.colors.error : theme.colors.border,
+                  }
+                ]}>
+                  <IconSymbol
+                    name="lock.fill"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                  <TextInput
+                    style={[styles.textInput, { color: theme.colors.text, flex: 1 }]}
+                    placeholder="••••••••"
+                    placeholderTextColor={theme.colors.textTertiary + '80'}
+                    value={formData.confirmPassword}
+                    onChangeText={(text) => updateFormData('confirmPassword', text)}
+                    secureTextEntry={secureConfirmPassword}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSignup}
+                  />
+                  <TouchableOpacity onPress={() => setSecureConfirmPassword(!secureConfirmPassword)}>
+                    <IconSymbol
+                      name={secureConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
+                      size={20}
+                      color={theme.colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </ThemedView>
+                {errors.confirmPassword && (
+                  <ThemedText variant="caption" style={[styles.errorText, { color: theme.colors.error }]}>
+                    {errors.confirmPassword}
+                  </ThemedText>
+                )}
+              </ThemedView>
+              {/* Sign Up Button */}
               <LinearGradient
                 colors={[theme.colors.primary, theme.colors.accent]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
               >
-                <ThemedButton
-                  variant="primary"
-                  size="lg"
-                  loading={isLoading}
-                  onPress={handleSignup}
+                <TouchableOpacity
                   style={styles.signupButton}
+                  onPress={handleSignup}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
                 >
                   <ThemedText style={styles.buttonText}>
-                    Create Account
+                    {isLoading ? 'Creating...' : 'Create Account'}
                   </ThemedText>
-                </ThemedButton>
+                </TouchableOpacity>
               </LinearGradient>
-            </ThemedView>
 
-            {/* Terms and Sign In Link */}
-            <ThemedView style={styles.termsContainer}>
-              <ThemedText variant="caption" center color="secondary" style={styles.termsText}>
-                By creating an account, you agree to our Terms of Service and Privacy Policy
+              {/* Terms */}
+              <ThemedText variant="caption" center color="secondary" style={styles.terms}>
+                By signing up, you agree to our Terms and Privacy Policy
               </ThemedText>
             </ThemedView>
 
-            <ThemedView style={styles.signinContainer}>
-              <ThemedText variant="body" color="secondary">
-                Already have an account?{' '}
-              </ThemedText>
-              <ThemedButton
-                variant="ghost"
-                size="sm"
-                onPress={() => router.push('/signin')}
-              >
-                Sign In
-              </ThemedButton>
+            {/* Sign In Link */}
+            <ThemedView style={styles.footer}>
+              <ThemedText color="secondary">Already have an account? </ThemedText>
+              <TouchableOpacity onPress={() => router.push('/signin')}>
+                <ThemedText style={[styles.signinLink, { color: theme.colors.primary }]}>
+                  Sign In
+                </ThemedText>
+              </TouchableOpacity>
             </ThemedView>
           </Animated.View>
         </ScrollView>
@@ -488,184 +658,3 @@ export default function SignupScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradientBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  gradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-    paddingHorizontal: 24,
-    marginTop: 20,
-  },
-  logoContainer: {
-    marginBottom: 24,
-  },
-  logoWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoBackground: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  logoGlow: {
-    position: 'absolute',
-    width: 88,
-    height: 88,
-    borderRadius: 24,
-    opacity: 0.3,
-    zIndex: -1,
-  },
-  logoText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 28,
-    letterSpacing: 1,
-  },
-  title: {
-    marginBottom: 8,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    maxWidth: 280,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  formCard: {
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    marginBottom: 8,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    paddingHorizontal: 16,
-    height: 56,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  inputError: {
-    borderColor: '#ef4444',
-    borderWidth: 1,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 16,
-    fontWeight: '500',
-  },
-  errorText: {
-    marginTop: 6,
-    marginLeft: 4,
-    fontSize: 12,
-  },
-  passwordStrengthContainer: {
-    marginTop: 8,
-    marginLeft: 4,
-  },
-  passwordStrengthBar: {
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 6,
-  },
-  eyeButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  buttonGradientWrapper: {
-    marginTop: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  buttonGradient: {
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  signupButton: {
-    width: '100%',
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  termsContainer: {
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
-  termsText: {
-    fontSize: 12,
-    lineHeight: 18,
-    opacity: 0.7,
-  },
-  signinContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-});

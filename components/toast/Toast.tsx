@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ToastConfig, ToastType } from './Toast.types';
-import { useTheme } from '@/hooks/use-theme';
+import { useThemeUtils } from '@/hooks/use-theme';
 
 const { width } = Dimensions.get('window');
 
@@ -19,7 +19,7 @@ interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ config, onHide }) => {
-  const { theme } = useTheme();
+  const { theme } = useThemeUtils();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-100)).current;
 

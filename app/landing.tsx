@@ -1,5 +1,5 @@
 import { ThemedButton, ThemedText, ThemedView } from '@/components/ui';
-import { useTheme } from '@/hooks/use-theme';
+import { useThemeUtils } from '@/hooks/use-theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -10,7 +10,7 @@ const isSmallDevice = width < 375;
 const isMediumDevice = width >= 375 && width < 768;
 
 export default function LandingPage() {
-  const theme = useTheme();
+  const { theme } = useThemeUtils();
   const router = useRouter();
   
   // Animations

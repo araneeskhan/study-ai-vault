@@ -1,5 +1,5 @@
 import { Text, TextProps, StyleSheet } from 'react-native';
-import { useTheme } from '@/hooks/use-theme';
+import { useThemeUtils } from '@/hooks/use-theme';
 
 interface ThemedTextProps extends TextProps {
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'caption' | 'button';
@@ -18,7 +18,7 @@ export function ThemedText({
   semibold = false,
   ...props
 }: ThemedTextProps) {
-  const theme = useTheme();
+  const { theme } = useThemeUtils();
   
   const getColor = () => {
     switch (color) {
