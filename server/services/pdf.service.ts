@@ -4,6 +4,63 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import fs from 'fs';
+import { Types } from 'mongoose';
+
+interface PDFDocument {
+  _id: Types.ObjectId;
+  title: string;
+  description: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  genre: string;
+  subGenre?: string;
+  tags: string[];
+  uploadedBy: Types.ObjectId;
+  uploaderName: string;
+  uploaderAvatar: string;
+  downloadCount: number;
+  viewCount: number;
+  likeCount: number;
+  likedBy: Types.ObjectId[];
+  isPublic: boolean;
+  isApproved: boolean;
+  language: string;
+  pageCount?: number;
+  author?: string;
+  publisher?: string;
+  publicationYear?: number;
+  isbn?: string;
+  coverImage: string;
+  rating: {
+    average: number;
+    count: number;
+  };
+  ratings: Array<{
+    user: Types.ObjectId;
+    rating: number;
+    review?: string;
+    createdAt: Date;
+  }>;
+  comments: Array<{
+    user: Types.ObjectId;
+    userName: string;
+    userAvatar: string;
+    content: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+  metadata: {
+    originalName: string;
+    encoding?: string;
+    mimetype: string;
+    extension: string;
+  };
+  status: 'active' | 'inactive' | 'deleted' | 'pending';
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads', 'pdfs');
@@ -186,14 +243,14 @@ export class PdfService {
       .populate('uploadedBy', 'fullName avatar')
       .populate('ratings.user', 'fullName avatar')
       .populate('comments.user', 'fullName avatar')
-      .lean();
+      .lean() as PDFDocument;
 
     if (!pdf) {
       throw new Error('PDF not found');
     }
 
     // Check if user has liked this PDF
-    const isLiked = userId ? pdf.likedBy.includes(userId) : false;
+    const isLiked = userId && pdf.likedBy ? pdf.likedBy.includes(userId as any) : false;
 
     return {
       ...pdf,
@@ -218,7 +275,8 @@ export class PdfService {
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .lean(),
+        .populate('uploadedBy', 'fullName avatar')
+        .lean() as Promise<PDFDocument[]>,
       Pdf.countDocuments(query),
     ]);
 
@@ -286,7 +344,7 @@ export class PdfService {
       throw new Error('PDF not found');
     }
 
-    const likeIndex = pdf.likedBy.indexOf(userId);
+    const likeIndex = pdf.likedBy ? pdf.likedBy.indexOf(userId as any) : -1;
     let isLiked;
 
     if (likeIndex > -1) {
@@ -294,7 +352,10 @@ export class PdfService {
       pdf.likeCount -= 1;
       isLiked = false;
     } else {
-      pdf.likedBy.push(userId);
+      if (!pdf.likedBy) {
+        pdf.likedBy = [];
+      }
+      pdf.likedBy.push(userId as any);
       pdf.likeCount += 1;
       isLiked = true;
     }

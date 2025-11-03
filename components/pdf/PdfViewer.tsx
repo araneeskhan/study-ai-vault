@@ -19,7 +19,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -87,7 +87,6 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
   const [newComment, setNewComment] = useState('');
   const [rating, setRating] = useState(0);
 
-  // Add safety check for theme - use light theme as fallback
   const safeTheme = theme || {
     colors: {
       primary: '#0a7ea4',
@@ -97,11 +96,10 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
       surface: '#f8fafc',
       surfaceElevated: '#ffffff',
       border: '#e2e8f0',
-      background: '#ffffff'
-    }
+      background: '#ffffff',
+    },
   };
 
-  // Use safeTheme throughout the component
   const themeColors = safeTheme.colors;
 
   useEffect(() => {
@@ -113,10 +111,9 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
       if (!token || !pdfId) return;
 
       const response = await ApiService.getPdfById(token, pdfId);
-      
+
       if (response.success) {
         setPdf(response.data);
-        // Increment view count
         await ApiService.incrementViewCount(token, pdfId);
       } else {
         Alert.alert('Error', 'Failed to load PDF details');
@@ -133,15 +130,20 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
 
   const handleLike = async () => {
     if (!token || !pdf) return;
-
     try {
       const response = await ApiService.toggleLike(token, pdf._id);
       if (response.success) {
-        setPdf(prev => prev ? {
-          ...prev,
-          isLiked: !prev.isLiked,
-          likeCount: prev.isLiked ? prev.likeCount - 1 : prev.likeCount + 1
-        } : null);
+        setPdf(prev =>
+          prev
+            ? {
+                ...prev,
+                isLiked: !prev.isLiked,
+                likeCount: prev.isLiked
+                  ? prev.likeCount - 1
+                  : prev.likeCount + 1,
+              }
+            : null
+        );
       }
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -155,7 +157,6 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
       const response = await ApiService.addRating(token, pdf._id, ratingValue);
       if (response.success) {
         setRating(ratingValue);
-        // Refresh PDF details to update rating
         loadPdfDetails();
       }
     } catch (error) {
@@ -167,10 +168,14 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
     if (!token || !pdf || !newComment.trim()) return;
 
     try {
-      const response = await ApiService.addComment(token, pdf._id, newComment.trim());
+      const response = await ApiService.addComment(
+        token,
+        pdf._id,
+        newComment.trim()
+      );
       if (response.success) {
         setNewComment('');
-        loadPdfDetails(); // Refresh to get new comment
+        loadPdfDetails();
       }
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -179,23 +184,18 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
 
   const handleDownload = async () => {
     if (!pdf) return;
-
     try {
-      // Download the PDF file
       const fileUri = FileSystem.documentDirectory + pdf.fileName;
       const downloadResumable = FileSystem.createDownloadResumable(
         pdf.fileUrl,
         fileUri
       );
-
       const { uri } = await downloadResumable.downloadAsync();
-      
-      // Share or open the file
+
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri);
       }
 
-      // Increment download count
       if (token) {
         await ApiService.downloadPdf(token, pdf._id);
       }
@@ -207,10 +207,11 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
 
   const handleShare = async () => {
     if (!pdf) return;
-
     try {
       await Share.share({
-        message: `Check out this PDF: ${pdf.title} by ${pdf.author || pdf.uploader.fullName}`,
+        message: `Check out this PDF: ${pdf.title} by ${
+          pdf.author || pdf.uploader.fullName
+        }`,
         url: pdf.fileUrl,
         title: pdf.title,
       });
@@ -238,11 +239,13 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: themeColors.surfaceElevated }]}>
+      <View
+        style={[styles.header, { backgroundColor: themeColors.surfaceElevated }]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <IconSymbol name="arrow.left" size={24} color={themeColors.text} />
         </TouchableOpacity>
-        
+
         <ThemedText style={styles.headerTitle} numberOfLines={1}>
           {pdf.title}
         </ThemedText>
@@ -251,7 +254,6 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
           <TouchableOpacity onPress={handleShare} style={styles.headerButton}>
             <IconSymbol name="square.and.arrow.up" size={20} color={themeColors.text} />
           </TouchableOpacity>
-          
           <TouchableOpacity onPress={handleDownload} style={styles.headerButton}>
             <IconSymbol name="arrow.down.circle" size={20} color={themeColors.text} />
           </TouchableOpacity>
@@ -262,7 +264,7 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
         {/* Info Section */}
         <View style={[styles.infoSection, { backgroundColor: themeColors.surfaceElevated }]}>
           <ThemedText style={styles.title}>{pdf.title}</ThemedText>
-          
+
           {pdf.author && (
             <ThemedText style={styles.author}>by {pdf.author}</ThemedText>
           )}
@@ -321,12 +323,12 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
               <IconSymbol name="eye" size={20} color={themeColors.text} />
               <ThemedText style={styles.statText}>{pdf.viewCount} views</ThemedText>
             </View>
-            
+
             <View style={styles.statItem}>
               <IconSymbol name="arrow.down.circle" size={20} color={themeColors.text} />
               <ThemedText style={styles.statText}>{pdf.downloadCount} downloads</ThemedText>
             </View>
-            
+
             <View style={styles.statItem}>
               <IconSymbol name="doc" size={20} color={themeColors.text} />
               <ThemedText style={styles.statText}>
@@ -336,178 +338,158 @@ export function PdfViewer({ pdfId }: PdfViewerProps) {
           </View>
 
           {/* Actions Section */}
-        <View style={[styles.actionsSection, { backgroundColor: themeColors.surfaceElevated }]}>
-          <TouchableOpacity 
-            style={[styles.actionButton, pdf.isLiked && styles.actionButtonActive]}
-            onPress={handleLike}
-          >
-            <IconSymbol 
-              name={pdf.isLiked ? "heart.fill" : "heart"} 
-              size={24} 
-              color={pdf.isLiked ? "#FF0000" : themeColors.text} 
-            />
-            <ThemedText style={[styles.actionButtonText, pdf.isLiked && styles.actionButtonTextActive]}>
-              {pdf.likeCount}
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setShowComments(!showComments)}
-          >
-            <IconSymbol name="bubble.left.and.bubble.right" size={24} color={themeColors.text} />
-            <ThemedText style={styles.actionButtonText}>
-              {pdf.comments.length}
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={handleDownload}
-          >
-            <IconSymbol name="arrow.down.circle" size={24} color={themeColors.text} />
-            <ThemedText style={styles.actionButtonText}>
-              {pdf.downloadCount}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {/* Rating Section */}
-        <View style={[styles.ratingSection, { backgroundColor: themeColors.surfaceElevated }]}>
-          <ThemedText style={styles.sectionTitle}>Rate this PDF</ThemedText>
-          <View style={styles.ratingContainer}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity
-                key={star}
-                onPress={() => handleRating(star)}
-                style={styles.starButton}
-              >
-                <IconSymbol
-                  name={star <= (pdf.userRating || rating) ? "star.fill" : "star"}
-                  size={30}
-                  color="#FFD700"
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
-          {pdf.rating.count > 0 && (
-            <ThemedText style={styles.ratingText}>
-              Average: {pdf.rating.average.toFixed(1)} ({pdf.rating.count} ratings)
-            </ThemedText>
-          )}
-        </View>
-
-        {/* Comments Section */}
-        {showComments && (
-          <View style={[styles.commentsSection, { backgroundColor: themeColors.surfaceElevated }]}>
-            <ThemedText style={styles.sectionTitle}>Comments</ThemedText>
-            
-            {/* Add Comment */}
-            <View style={styles.addComment}>
-              <TextInput
-                placeholder="Add a comment..."
-                value={newComment}
-                onChangeText={setNewComment}
-                style={[styles.commentInput, { 
-                  backgroundColor: themeColors.surface,
-                  borderColor: themeColors.border 
-                }]}
-                multiline
+          <View style={[styles.actionsSection, { backgroundColor: themeColors.surfaceElevated }]}>
+            <TouchableOpacity
+              style={[styles.actionButton, pdf.isLiked && styles.actionButtonActive]}
+              onPress={handleLike}
+            >
+              <IconSymbol
+                name={pdf.isLiked ? 'heart.fill' : 'heart'}
+                size={24}
+                color={pdf.isLiked ? '#FF0000' : themeColors.text}
               />
-              <Button onPress={handleComment} style={styles.commentButton}>
-                <ThemedText>Post</ThemedText>
-              </Button>
-            </View>
+              <ThemedText
+                style={[styles.actionButtonText, pdf.isLiked && styles.actionButtonTextActive]}
+              >
+                {pdf.likeCount}
+              </ThemedText>
+            </TouchableOpacity>
 
-            {/* Comments List */}
-            {pdf.comments.map((comment) => (
-              <View key={comment._id} style={styles.comment}>
-                <View style={styles.commentHeader}>
-                  <ThemedText style={styles.commentAuthor}>
-                    {comment.user.fullName}
-                  </ThemedText>
-                  <ThemedText style={styles.commentDate}>
-                    {new Date(comment.createdAt).toLocaleDateString()}
-                  </ThemedText>
-                </View>
-                <ThemedText style={styles.commentText}>
-                  {comment.text}
-                </ThemedText>
-              </View>
-            ))}
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowComments(!showComments)}
+            >
+              <IconSymbol name="bubble.left.and.bubble.right" size={24} color={themeColors.text} />
+              <ThemedText style={styles.actionButtonText}>
+                {pdf.comments.length}
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
+              <IconSymbol name="arrow.down.circle" size={24} color={themeColors.text} />
+              <ThemedText style={styles.actionButtonText}>{pdf.downloadCount}</ThemedText>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* PDF Viewer Section */}
-        <View style={[styles.pdfSection, { backgroundColor: themeColors.surfaceElevated }]}>
-          <ThemedText style={styles.sectionTitle}>PDF Content</ThemedText>
-          
-          <View style={styles.pdfContainer}>
-            {pdfLoading && (
-              <View style={styles.pdfLoading}>
-                <ActivityIndicator size="large" color={themeColors.primary} />
-              </View>
+          {/* Rating Section */}
+          <View style={[styles.ratingSection, { backgroundColor: themeColors.surfaceElevated }]}>
+            <ThemedText style={styles.sectionTitle}>Rate this PDF</ThemedText>
+            <View style={styles.ratingContainer}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <TouchableOpacity key={star} onPress={() => handleRating(star)} style={styles.starButton}>
+                  <IconSymbol
+                    name={star <= (pdf.userRating || rating) ? 'star.fill' : 'star'}
+                    size={30}
+                    color="#FFD700"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            {pdf.rating.count > 0 && (
+              <ThemedText style={styles.ratingText}>
+                Average: {pdf.rating.average.toFixed(1)} ({pdf.rating.count} ratings)
+              </ThemedText>
             )}
-            
-            {pdf.fileUrl ? (
-            <WebView
-              source={{ uri: pdf.fileUrl }}
-              style={styles.pdf}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              startInLoadingState={true}
-              renderLoading={() => (
+          </View>
+
+          {/* Comments Section */}
+          {showComments && (
+            <View style={[styles.commentsSection, { backgroundColor: themeColors.surfaceElevated }]}>
+              <ThemedText style={styles.sectionTitle}>Comments</ThemedText>
+
+              {/* Add Comment */}
+              <View style={styles.addComment}>
+                <TextInput
+                  placeholder="Add a comment..."
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  style={[
+                    styles.commentInput,
+                    { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+                  ]}
+                  multiline
+                />
+                <Button onPress={handleComment} style={styles.commentButton}>
+                  <ThemedText>Post</ThemedText>
+                </Button>
+              </View>
+
+              {/* Comments List */}
+              {pdf.comments.map(comment => (
+                <View key={comment._id} style={styles.comment}>
+                  <View style={styles.commentHeader}>
+                    <ThemedText style={styles.commentAuthor}>
+                      {comment.user.fullName}
+                    </ThemedText>
+                    <ThemedText style={styles.commentDate}>
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </ThemedText>
+                  </View>
+                  <ThemedText style={styles.commentText}>{comment.text}</ThemedText>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* PDF Viewer Section */}
+          <View style={[styles.pdfSection, { backgroundColor: themeColors.surfaceElevated }]}>
+            <ThemedText style={styles.sectionTitle}>PDF Content</ThemedText>
+
+            <View style={styles.pdfContainer}>
+              {pdfLoading && (
                 <View style={styles.pdfLoading}>
                   <ActivityIndicator size="large" color={themeColors.primary} />
                 </View>
               )}
-              onLoad={() => setPdfLoading(false)}
-              onError={(error) => {
-                console.error('PDF Error:', error);
-                setPdfLoading(false);
-                Alert.alert(
-                  'PDF Viewer Error',
-                  'Unable to load PDF in viewer. Would you like to open it in an external app?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Open Externally',
-                      onPress: () => Linking.openURL(pdf.fileUrl)
-                    }
-                  ]
-                );
-              }}
-            />
-          ) : (
-            <View style={styles.pdfLoading}>
-              <ActivityIndicator size="large" color={themeColors.primary} />
-            </View>
-          )}
-          </View>
 
-          <View style={styles.pdfControls}>
-            <ThemedText style={styles.pageInfo}>
-              Page {currentPage} of {totalPages}
-            </ThemedText>
+              {pdf.fileUrl ? (
+                <WebView
+                  source={{ uri: pdf.fileUrl }}
+                  style={styles.pdf}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  startInLoadingState
+                  renderLoading={() => (
+                    <View style={styles.pdfLoading}>
+                      <ActivityIndicator size="large" color={themeColors.primary} />
+                    </View>
+                  )}
+                  onLoad={() => setPdfLoading(false)}
+                  onError={error => {
+                    console.error('PDF Error:', error);
+                    setPdfLoading(false);
+                    Alert.alert(
+                      'PDF Viewer Error',
+                      'Unable to load PDF in viewer. Would you like to open it in an external app?',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Open Externally', onPress: () => Linking.openURL(pdf.fileUrl) },
+                      ]
+                    );
+                  }}
+                />
+              ) : (
+                <View style={styles.pdfLoading}>
+                  <ActivityIndicator size="large" color={themeColors.primary} />
+                </View>
+              )}
+            </View>
+
+            <View style={styles.pdfControls}>
+              <ThemedText style={styles.pageInfo}>
+                Page {currentPage} of {totalPages}
+              </ThemedText>
+            </View>
           </View>
-        </View>
+        </View> {/* ✅ closes infoSection */}
       </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1 },
+  centerContent: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -520,22 +502,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    marginHorizontal: 10,
-  },
-  headerActions: {
-    flexDirection: 'row',
-  },
-  headerButton: {
-    padding: 8,
-    marginLeft: 10,
-  },
+  backButton: { padding: 8 },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: '600', marginHorizontal: 10 },
+  headerActions: { flexDirection: 'row' },
+  headerButton: { padding: 8, marginLeft: 10 },
   infoSection: {
     margin: 15,
     padding: 20,
@@ -546,26 +516,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  author: {
-    fontSize: 18,
-    marginBottom: 15,
-    opacity: 0.8,
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 20,
-  },
-  genreContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 15,
-  },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
+  author: { fontSize: 18, marginBottom: 15, opacity: 0.8 },
+  description: { fontSize: 16, lineHeight: 24, marginBottom: 20 },
+  genreContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 15 },
   genreBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -573,15 +527,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 10,
   },
-  genreText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
+  genreText: { fontSize: 14, fontWeight: '600' },
+  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20 },
   tag: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -589,200 +536,66 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  tagText: {
-    fontSize: 12,
-  },
-  uploaderSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 15,
-  },
-  uploaderInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  tagText: { fontSize: 12 },
+  uploaderSection: { marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 15 },
+  uploaderInfo: { flexDirection: 'row', alignItems: 'center' },
   uploaderAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  uploaderAvatarText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  uploaderDetails: {
-    flex: 1,
-  },
-  uploaderName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  uploadDate: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
+  uploaderAvatarText: { fontSize: 20, fontWeight: '600' },
+  uploaderDetails: { marginLeft: 15 },
+  uploaderName: { fontSize: 16, fontWeight: '500' },
+  uploadDate: { fontSize: 14, opacity: 0.7 },
   statsSection: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 20,
   },
-  statItem: {
-    alignItems: 'center',
-  },
-  statText: {
-    marginTop: 5,
-    fontSize: 14,
-  },
-  metaSection: {
-    marginBottom: 10,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  metaLabel: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  metaValue: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  statItem: { flexDirection: 'row', alignItems: 'center' },
+  statText: { marginLeft: 5, fontSize: 14 },
   actionsSection: {
-    margin: 15,
-    padding: 20,
-    borderRadius: 15,
     flexDirection: 'row',
     justifyContent: 'space-around',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  actionButton: {
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 10,
-  },
-  actionButtonActive: {
-    backgroundColor: '#FF000010',
-  },
-  actionButtonText: {
-    marginTop: 5,
-    fontSize: 12,
-  },
-  actionButtonTextActive: {
-    color: '#FF0000',
-  },
-  ratingSection: {
-    margin: 15,
-    padding: 20,
+    paddingVertical: 15,
     borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  starButton: {
-    padding: 5,
-  },
-  ratingText: {
-    textAlign: 'center',
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  commentsSection: {
-    margin: 15,
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addComment: {
     marginBottom: 20,
   },
+  actionButton: { flexDirection: 'row', alignItems: 'center' },
+  actionButtonActive: { backgroundColor: 'rgba(255, 0, 0, 0.1)' },
+  actionButtonText: { marginLeft: 8 },
+  actionButtonTextActive: { color: '#FF0000' },
+  ratingSection: { marginBottom: 20, padding: 15, borderRadius: 15 },
+  ratingContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
+  starButton: { marginHorizontal: 5 },
+  ratingText: { textAlign: 'center', fontSize: 14, opacity: 0.8 },
+  commentsSection: { marginBottom: 20, padding: 15, borderRadius: 15 },
+  addComment: { flexDirection: 'row', marginBottom: 15, alignItems: 'center' },
   commentInput: {
+    flex: 1,
+    padding: 10,
     borderWidth: 1,
     borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    minHeight: 80,
+    marginRight: 10,
   },
-  commentButton: {
-    alignSelf: 'flex-end',
-  },
-  comment: {
-    marginBottom: 15,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  commentAuthor: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  commentDate: {
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  commentText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  pdfSection: {
-    margin: 15,
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+  commentButton: { paddingVertical: 10, paddingHorizontal: 15 },
+  comment: { marginBottom: 10 },
+  commentHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+  commentAuthor: { fontWeight: '600' },
+  commentDate: { opacity: 0.6 },
+  commentText: { marginTop: 5 },
+  pdfSection: { padding: 15, borderRadius: 15 },
   pdfContainer: {
-    height: 400,
+    height: height * 0.7,
+    borderWidth: 1,
     borderRadius: 10,
     overflow: 'hidden',
-    marginBottom: 15,
   },
-  pdf: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    opacity: 0.7,
-  },
+  pdf: { flex: 1 },
   pdfLoading: {
     position: 'absolute',
     top: 0,
@@ -791,13 +604,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.1)',
   },
   pdfControls: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 10,
   },
-  pageInfo: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
+  pageInfo: { fontSize: 14 },
 });
